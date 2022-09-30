@@ -1,0 +1,15 @@
+rm(list = ls())
+library(readr)
+test<-read.csv(file = "./script/pred_score.csv")
+test$statue<-c("test")
+train<-read.csv(file = "./script/pred_score1.csv")
+train$statue<-c("train")
+alldata<-rbind(train,test)
+library(ggpubr)
+colnames(alldata)
+p <- ggboxplot(alldata, x = "statue", y = "pred_score",
+               color = "statue", palette = "jco",
+               add = "jitter")
+p + stat_compare_means(method = "t.test",label.y = 90,label.x = 1)
+library(export)
+graph2tif(file="result/figs1")
