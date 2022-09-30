@@ -34,5 +34,3 @@ ggsurvplot(f2,
 
 library(export)
 graph2tif(file="result/survival for all")
-
-
