@@ -8,7 +8,7 @@ library(AutoScore)
 colnames(seer_autoscor)
 
 library(dplyr)
-seer_autoscor1<-select(seer_autoscor,-c(11:15))
+seer_autoscor1<-select(seer_autoscor,-c(11:15,22,23))
 
 
 #AutoScore preprocessing (Users to check the following)
@@ -105,7 +105,7 @@ cut_vec <- AutoScore_weighting(
 ##Fine-tune the initial score generated in STEP(iii) (AutoScore Module 5 & Re-run AutoScore Modules 2+3) 微调参数
 ## Current cutoffs:`c(35, 49, 76, 89)`. We can fine tune the cutoffs as follows:
 # Example 1: rounding up to a nice number
-cut_vec$tumor_size<- c(13, 20, 60, 130)
+cut_vec$tumor_size<- c(13, 20, 65, 130)
 
 cut_vec$Age <- c(45, 55, 65, 75)
 
@@ -126,7 +126,7 @@ pred_score <-
     final_variables,
     cut_vec,
     scoring_table,
-    threshold = 45,
+    threshold = 46,
     with_label = TRUE
   )
 head(pred_score)
@@ -140,13 +140,13 @@ pred_score1 <-
     final_variables,
     cut_vec,
     scoring_table,
-    threshold = "best",
+    threshold =46, 
     with_label = TRUE
   )
 head(pred_score1)
 write.csv(pred_score1, file = "script/pred_score1.csv")
 
-print_roc_performance(pred_score$Label, pred_score$pred_score, threshold = 45)
+print_roc_performance(pred_score$Label, pred_score$pred_score, threshold = 46)
 
 
 testset_for_survival<-cbind(pred_score,test_set)
@@ -169,7 +169,7 @@ train_for_survival<-merge(x =train_for_survival,y = survivalmonth,
 ##KM  trainset
 library(survival)
 library(survminer)
-train_for_survival$risk<-ifelse(train_for_survival$pred_score>=45,"High","Low")
+train_for_survival$risk<-ifelse(train_for_survival$pred_score>=46,"High","Low")
 
 kmfit2 <- survfit(Surv(Survival_months, Label=="Dead")~risk, data=train_for_survival)
 ggsurvplot(kmfit2, conf.int=F, pval=TRUE,
@@ -198,7 +198,7 @@ summary(survfit(Surv(Survival_months, Label=="Dead")~risk, data=train_for_surviv
 ##KM  testset
 library(survival)
 library(survminer)
-testset_for_survival$risk<-ifelse(testset_for_survival$pred_score>=45,"High","Low")
+testset_for_survival$risk<-ifelse(testset_for_survival$pred_score>=46,"High","Low")
 
 kmfit <- survfit(Surv(Survival_months, Label=="Dead")~risk, data=testset_for_survival)
 ggsurvplot(kmfit, conf.int=F, pval=TRUE,
@@ -225,6 +225,21 @@ summary(survfit(Surv(Survival_months, Label=="Dead")~risk, data=testset_for_surv
 ##整体数据情况
 dataforall<-rbind(train_for_survival,testset_for_survival)
 
+##KM 
+library(survival)
+library(survminer)
+
+
+kmfitforall <- survfit(Surv(Survival_months, Label=="Dead")~risk, data=dataforall)
+ggsurvplot(kmfitforall, conf.int=F, pval=TRUE,
+           legend.labs=c("High","Lower"), legend.title="RISK",  
+           title=c("Kaplan-Meier Curve for testset by risk stratify of all data"))
+library(export)
+graph2tif(file="result/kmplot of all data")
+
+
+
+###logrank
 mySurv2=with(dataforall,Surv(Survival_months, Label=="Dead"))
 
 data.survdiff2=survdiff(mySurv2~risk,data=dataforall)
@@ -232,8 +247,8 @@ data.survdiff2
 pValue=1-pchisq(data.survdiff2$chisq,df=length(data.survdiff2$n)-1)
 sfit3=survfit(Surv(Survival_months, Label=="Dead")~risk, data=dataforall)
 ggsurvplot(sfit3,pval = T,pval.method = 1,legend.labs=c("High","Lower"), legend.title="RISK",
-           title=c("Logrank Curve for testset by risk stratify of dataset"))
-graph2tif(file="result/logrank plot of dataset")
+           title=c("Logrank Curve for testset by risk stratify of  all data"))
+graph2tif(file="result/logrank plot of  all data")
 
 summary(survfit(Surv(Survival_months, Label=="Dead")~risk, data=dataforall),times = 3*12)
 summary(survfit(Surv(Survival_months, Label=="Dead")~risk, data=dataforall),times = 5*12)
